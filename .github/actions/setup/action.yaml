@@ -1,0 +1,19 @@
+name: Setup rust toolchain
+description: Setup rust toolchain
+inputs:
+  rust-toolchain-version:
+    description: rust toolchain version
+    required: false
+    default: 1.70.0
+runs:
+  using: composite
+  steps:
+    - name: Setup rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ inputs.rust-toolchain-version }}
+        components: clippy, rustfmt
+    - name: Rust cache
+      uses: Swatinem/rust-cache@v2
+      with:
+        shared-key: ci
