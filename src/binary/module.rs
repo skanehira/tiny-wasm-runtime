@@ -1,5 +1,3 @@
-#![allow(dead_code, unused_imports)]
-
 use super::{
     instruction::{Instruction, MemoryArg},
     opcode::Opcode,
@@ -34,7 +32,13 @@ pub struct Module {
 }
 
 impl Module {
-    fn new(input: &[u8]) -> IResult<&[u8], Module> {
+    pub fn new(input: &[u8]) -> anyhow::Result<Module> {
+        let (_, module) =
+            Module::decode(input).map_err(|e| anyhow::anyhow!("failed to parse wasm: {}", e))?;
+        Ok(module)
+    }
+
+    fn decode(input: &[u8]) -> IResult<&[u8], Module> {
         let (input, _) = tag(b"\0asm")(input)?;
         let (input, version) = le_u32(input)?;
 
@@ -331,8 +335,7 @@ fn decode_block(input: &[u8]) -> IResult<&[u8], Block> {
     let block_type = if byte == 0x40 {
         BlockType::Empty
     } else {
-        let err = nom::error::Error::new(input, nom::error::ErrorKind::Fail);
-        return Err(nom::Err::Failure(err));
+        unimplemented!();
     };
 
     Ok((input, Block { block_type }))
@@ -378,21 +381,94 @@ fn decode_instructions(input: &[u8]) -> IResult<&[u8], Instruction> {
 #[cfg(test)]
 mod tests {
     use super::Module;
+    use anyhow::*;
 
     #[test]
-    fn decode_hello_world() -> anyhow::Result<()> {
-        let wasm = wat::parse_str(include_str!("../fixtures/hello_world.wat"))?;
-        let (_, module) = Module::new(&wasm).expect("failed to parse wasm");
+    fn decode_simplest_module() -> Result<()> {
+        let wasm = wat::parse_str("(module)")?;
+        let module = Module::new(&wasm)?;
         insta::assert_debug_snapshot!(module);
         Ok(())
     }
 
     #[test]
-    fn decode_fib() -> anyhow::Result<()> {
+    fn decode_simplest_func() -> Result<()> {
+        let wasm = wat::parse_str("(module (func))")?;
+        let module = Module::new(&wasm)?;
+        insta::assert_debug_snapshot!(module);
+        Ok(())
+    }
+
+    #[test]
+    fn decode_memory() -> Result<()> {
+        let wasm = wat::parse_str("(module (memory 1))")?;
+        let module = Module::new(&wasm)?;
+        insta::assert_debug_snapshot!(module);
+        Ok(())
+    }
+
+    #[test]
+    fn decode_data() -> Result<()> {
+        let wasm = wat::parse_str(include_str!("../fixtures/data.wat"))?;
+        let module = Module::new(&wasm)?;
+        insta::assert_debug_snapshot!(module);
+        Ok(())
+    }
+
+    #[test]
+    fn decode_import() -> Result<()> {
+        let wasm = wat::parse_str(include_str!("../fixtures/import.wat"))?;
+        let module = Module::new(&wasm)?;
+        insta::assert_debug_snapshot!(module);
+        Ok(())
+    }
+
+    #[test]
+    fn decode_export() -> Result<()> {
+        let wasm = wat::parse_str(include_str!("../fixtures/export.wat"))?;
+        let module = Module::new(&wasm)?;
+        insta::assert_debug_snapshot!(module);
+        Ok(())
+    }
+
+    #[test]
+    fn decode_func_param_result() -> Result<()> {
+        let wasm = wat::parse_str(include_str!("../fixtures/func_param_result.wat"))?;
+        let module = Module::new(&wasm)?;
+        insta::assert_debug_snapshot!(module);
+        Ok(())
+    }
+
+    #[test]
+    fn decode_func_local() -> Result<()> {
+        let wasm = wat::parse_str(include_str!("../fixtures/func_local.wat"))?;
+        let module = Module::new(&wasm)?;
+        insta::assert_debug_snapshot!(module);
+        Ok(())
+    }
+
+    #[test]
+    fn decode_call_func() -> Result<()> {
+        let wasm = wat::parse_str(include_str!("../fixtures/call.wat"))?;
+        let module = Module::new(&wasm)?;
+        insta::assert_debug_snapshot!(module);
+        Ok(())
+    }
+
+    #[test]
+    fn decode_fib() -> Result<()> {
         let wasm = wat::parse_str(include_str!("../fixtures/fib.wat"))?;
-        let (_, module) = Module::new(&wasm).expect("failed to parse wasm");
+        let module = Module::new(&wasm)?;
         insta::assert_debug_snapshot!(module);
 
+        Ok(())
+    }
+
+    #[test]
+    fn decode_hello_world() -> Result<()> {
+        let wasm = wat::parse_str(include_str!("../fixtures/hello_world.wat"))?;
+        let module = Module::new(&wasm)?;
+        insta::assert_debug_snapshot!(module);
         Ok(())
     }
 }

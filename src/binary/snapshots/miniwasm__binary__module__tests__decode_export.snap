@@ -1,0 +1,61 @@
+---
+source: src/binary/module.rs
+expression: module
+---
+Module {
+    magic: "\0asm",
+    version: 1,
+    custom_section: Some(
+        Custom {
+            name: "name",
+            data: [
+                1,
+                8,
+                1,
+                0,
+                5,
+                100,
+                117,
+                109,
+                109,
+                121,
+            ],
+        },
+    ),
+    memory_section: None,
+    type_section: Some(
+        [
+            FuncType {
+                params: [],
+                results: [],
+            },
+        ],
+    ),
+    function_section: Some(
+        [
+            0,
+        ],
+    ),
+    import_section: None,
+    export_section: Some(
+        [
+            Export {
+                name: "dummy",
+                kind: Func(
+                    0,
+                ),
+            },
+        ],
+    ),
+    data_section: None,
+    code_section: Some(
+        [
+            Function {
+                locals: [],
+                code: [
+                    End,
+                ],
+            },
+        ],
+    ),
+}
