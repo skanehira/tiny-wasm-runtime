@@ -144,7 +144,7 @@ fn decode_import_section(input: &[u8]) -> IResult<&[u8], Vec<Import>> {
                 let (rest, idx) = leb128_u32(rest)?;
                 (rest, ImportKind::Func(idx))
             }
-            _ => todo!(),
+            _ => unreachable!(),
         };
 
         imports.push(Import {
@@ -173,7 +173,7 @@ fn decode_export_section(input: &[u8]) -> IResult<&[u8], Vec<Export>> {
         let (rest, idx) = leb128_u32(rest)?;
         let kind = match export_kind {
             0x00 => ExportKind::Func(idx),
-            _ => todo!(),
+            _ => unreachable!(),
         };
 
         exports.push(Export { name, kind });
