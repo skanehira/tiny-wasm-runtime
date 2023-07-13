@@ -1,6 +1,6 @@
 (module
   (func
-	  (local i32)
-	  (local i64 i64)
-	)
+    (local i32)
+    (local i64 i64)
+  )
 )
