@@ -185,16 +185,15 @@ fn decode_export_section(input: &[u8]) -> IResult<&[u8], Vec<Export>> {
 }
 
 fn decode_limits(input: &[u8]) -> IResult<&[u8], Limits> {
-    let (mut input, (limits, min)) = pair(leb128_u32, leb128_u32)(input)?;
+    let (input, (limits, min)) = pair(leb128_u32, leb128_u32)(input)?;
     let max = if limits == 0 {
         None
     } else {
-        let (rest, max) = leb128_u32(input)?;
-        input = rest;
+        let (_, max) = leb128_u32(input)?;
         Some(max)
     };
 
-    Ok((input, Limits { min, max }))
+    Ok((&[], Limits { min, max }))
 }
 
 fn decode_custom_section(input: &[u8]) -> IResult<&[u8], Custom> {
@@ -384,7 +383,7 @@ mod tests {
     fn decode_hello_world() -> anyhow::Result<()> {
         let wasm = wat::parse_str(include_str!("../fixtures/hello_world.wat"))?;
         let (_, module) = Module::new(&wasm).expect("failed to parse wasm");
-        dbg!(module);
+        insta::assert_debug_snapshot!(module);
         Ok(())
     }
 
@@ -392,7 +391,7 @@ mod tests {
     fn decode_fib() -> anyhow::Result<()> {
         let wasm = wat::parse_str(include_str!("../fixtures/fib.wat"))?;
         let (_, module) = Module::new(&wasm).expect("failed to parse wasm");
-        dbg!(module);
+        insta::assert_debug_snapshot!(module);
 
         Ok(())
     }
