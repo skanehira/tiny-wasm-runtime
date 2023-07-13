@@ -1,5 +1,14 @@
 #![allow(dead_code, unused_imports)]
 
+use super::{
+    instruction::{Instruction, MemoryArg},
+    opcode::Opcode,
+    section::SectionID,
+    types::{
+        Block, BlockType, Custom, Data, Export, ExportKind, Expr, ExprValue, FuncType, Function,
+        FunctionLocal, Import, ImportKind, Limits, Memory, ValueType,
+    },
+};
 use nom::{
     bytes::complete::{tag, take},
     multi::many0,
@@ -8,17 +17,7 @@ use nom::{
     IResult,
 };
 use nom_leb128::{leb128_i32, leb128_u32};
-use num_traits::FromPrimitive;
-
-use super::{
-    instruction::{Instruction, MemoryArg},
-    opcode::Opcode,
-    section::SectionID,
-    types::{
-        Custom, Data, Export, ExportKind, Expr, ExprValue, FuncType, Function, FunctionLocal,
-        Import, ImportKind, Limits, Memory, ValueType,
-    },
-};
+use num_traits::FromPrimitive as _;
 
 #[derive(Default, Debug, PartialEq)]
 pub struct Module {
@@ -109,10 +108,7 @@ fn decode_section_header(input: &[u8]) -> IResult<&[u8], (SectionID, u32)> {
     let (input, (id, size)) = pair(le_u8, leb128_u32)(input)?;
     Ok((
         input,
-        (
-            FromPrimitive::from_u8(id).expect("unexpected section id"),
-            size,
-        ),
+        (SectionID::from_u8(id).expect("unexpected section id"), size),
     ))
 }
 
@@ -330,10 +326,33 @@ fn decode_function_body(input: &[u8]) -> IResult<&[u8], Function> {
     Ok((&[], body))
 }
 
+fn decode_block(input: &[u8]) -> IResult<&[u8], Block> {
+    let (input, byte) = le_u8(input)?;
+
+    let block_type = if byte == 0x40 {
+        BlockType::Empty
+    } else {
+        let err = nom::error::Error::new(input, nom::error::ErrorKind::Fail);
+        return Err(nom::Err::Failure(err));
+    };
+
+    Ok((input, Block { block_type }))
+}
+
 fn decode_instructions(input: &[u8]) -> IResult<&[u8], Instruction> {
     let (input, byte) = le_u8(input)?;
-    let op = Opcode::from_u8(byte).expect("invalid opcode");
+    let op = Opcode::from_u8(byte).unwrap_or_else(|| panic!("invalid opcode: {:X}", byte));
     let (rest, inst) = match op {
+        Opcode::If => {
+            let (rest, block) = decode_block(input)?;
+            (rest, Instruction::If(block))
+        }
+        Opcode::End => (input, Instruction::End),
+        Opcode::Return => (input, Instruction::Return),
+        Opcode::Call => {
+            let (rest, idx) = leb128_u32(input)?;
+            (rest, Instruction::Call(idx))
+        }
         Opcode::LocalGet => {
             let (rest, idx) = leb128_u32(input)?;
             (rest, Instruction::LocalGet(idx))
@@ -342,19 +361,17 @@ fn decode_instructions(input: &[u8]) -> IResult<&[u8], Instruction> {
             let (rest, idx) = leb128_u32(input)?;
             (rest, Instruction::LocalSet(idx))
         }
-        Opcode::I32Const => {
-            let (rest, value) = leb128_i32(input)?;
-            (rest, Instruction::I32Const(value))
-        }
         Opcode::I32Store => {
             let (rest, (align, offset)) = pair(leb128_u32, leb128_u32)(input)?;
             (rest, Instruction::I32Store(MemoryArg { align, offset }))
         }
-        Opcode::Call => {
-            let (rest, idx) = leb128_u32(input)?;
-            (rest, Instruction::Call(idx))
+        Opcode::I32Const => {
+            let (rest, value) = leb128_i32(input)?;
+            (rest, Instruction::I32Const(value))
         }
-        Opcode::End => (input, Instruction::End),
+        Opcode::I32LtS => (input, Instruction::I32LtS),
+        Opcode::I32Add => (input, Instruction::I32Add),
+        Opcode::I32Sub => (input, Instruction::I32Sub),
     };
     Ok((rest, inst))
 }
@@ -364,37 +381,19 @@ mod tests {
     use super::Module;
 
     #[test]
-    fn decode_module() -> anyhow::Result<()> {
-        let wasm = wat::parse_str(
-            r#"
-(module
-  (import "wasi_snapshot_preview1" "fd_write"
-    (func $fd_write (param i32 i32 i32 i32) (result i32))
-  )
-  (memory 1)
-  (data (i32.const 0) "Hello, World!\n")
-
-  (func $hello_world (result i32)
-    (local $iovec i32)
-
-    (i32.store (i32.const 16) (i32.const 0))
-    (i32.store (i32.const 20) (i32.const 14))
-
-    (local.set $iovec (i32.const 16))
-
-    (call $fd_write
-      (i32.const 1)
-      (local.get $iovec)
-      (i32.const 1)
-      (i32.const 24)
-    )
-  )
-  (export "_start" (func $hello_world))
-)
-"#,
-        )?;
+    fn decode_hello_world() -> anyhow::Result<()> {
+        let wasm = wat::parse_str(include_str!("../fixtures/hello_world.wat"))?;
         let (_, module) = Module::new(&wasm).expect("failed to parse wasm");
         dbg!(module);
+        Ok(())
+    }
+
+    #[test]
+    fn decode_fib() -> anyhow::Result<()> {
+        let wasm = wat::parse_str(include_str!("../fixtures/fib.wat"))?;
+        let (_, module) = Module::new(&wasm).expect("failed to parse wasm");
+        dbg!(module);
+
         Ok(())
     }
 }

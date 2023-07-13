@@ -99,3 +99,13 @@ pub struct Function {
     pub locals: Vec<FunctionLocal>,
     pub code: Vec<Instruction>,
 }
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Block {
+    pub block_type: BlockType,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum BlockType {
+    Empty,
+}
