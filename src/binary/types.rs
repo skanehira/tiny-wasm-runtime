@@ -27,8 +27,6 @@ pub struct FuncType {
 pub enum ValueType {
     I32, // 0x7F
     I64, // 0x7E
-    F32, // 0x7D
-    F64, // 0x7C
 }
 
 impl From<u8> for ValueType {
@@ -36,8 +34,6 @@ impl From<u8> for ValueType {
         match value {
             0x7F => Self::I32,
             0x7E => Self::I64,
-            0x7D => Self::F32,
-            0x7C => Self::F64,
             _ => panic!("invalid value type: {:X}", value),
         }
     }
