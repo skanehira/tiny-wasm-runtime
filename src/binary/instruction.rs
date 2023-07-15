@@ -6,7 +6,7 @@ pub struct MemoryArg {
     pub offset: u32,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum Instruction {
     If(Block),
     End,

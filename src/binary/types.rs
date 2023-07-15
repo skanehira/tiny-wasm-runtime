@@ -90,7 +90,7 @@ pub struct FunctionLocal {
     pub value_type: ValueType,
 }
 
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone)]
 pub struct Function {
     pub locals: Vec<FunctionLocal>,
     pub code: Vec<Instruction>,

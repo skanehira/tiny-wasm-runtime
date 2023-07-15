@@ -17,7 +17,7 @@ use nom::{
 use nom_leb128::{leb128_i32, leb128_u32};
 use num_traits::FromPrimitive as _;
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Debug)]
 pub struct Module {
     pub magic: String,
     pub version: u32,
