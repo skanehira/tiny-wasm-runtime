@@ -3,8 +3,8 @@ use super::{
     opcode::Opcode,
     section::SectionID,
     types::{
-        Block, BlockType, Custom, Data, Export, ExportKind, Expr, ExprValue, FuncType, Function,
-        FunctionLocal, Import, ImportKind, Limits, Memory, MemoryArg, ValueType,
+        Block, BlockType, Data, Expr, ExprValue, FuncType, Function, FunctionLocal, Import,
+        ImportKind, Limits, Memory, MemoryArg, ValueType,
     },
 };
 use nom::{
@@ -21,12 +21,10 @@ use num_traits::FromPrimitive as _;
 pub struct Module {
     pub magic: String,
     pub version: u32,
-    pub custom_section: Option<Custom>,
     pub memory_section: Option<Vec<Memory>>,
     pub type_section: Option<Vec<FuncType>>,
     pub function_section: Option<Vec<u32>>,
     pub import_section: Option<Vec<Import>>,
-    pub export_section: Option<Vec<Export>>,
     pub data_section: Option<Vec<Data>>,
     pub code_section: Option<Vec<Function>>,
 }
@@ -61,12 +59,6 @@ impl Module {
                     let (rest, section_bytes) = take(size)(input)?;
 
                     match id {
-                        SectionID::Custom => {
-                            // カスタムセクションの読み込み
-                            // 残りは存在しないため、タプルの1番目は捨てる
-                            let (_, custom) = decode_custom_section(section_bytes)?;
-                            module.custom_section = Some(custom);
-                        }
                         SectionID::Memory => {
                             let (_, memory) = decode_memory_section(section_bytes)?;
                             module.memory_section = Some(vec![memory]);
@@ -82,10 +74,6 @@ impl Module {
                         SectionID::Import => {
                             let (_, imports) = decode_import_section(section_bytes)?;
                             module.import_section = Some(imports);
-                        }
-                        SectionID::Export => {
-                            let (_, exports) = decode_export_section(section_bytes)?;
-                            module.export_section = Some(exports);
                         }
                         SectionID::Data => {
                             let (_, data) = decode_data_section(section_bytes)?;
@@ -163,31 +151,6 @@ fn decode_import_section(input: &[u8]) -> IResult<&[u8], Vec<Import>> {
     Ok((&[], imports))
 }
 
-fn decode_export_section(input: &[u8]) -> IResult<&[u8], Vec<Export>> {
-    let mut exports = vec![];
-
-    let (mut input, count) = leb128_u32(input)?;
-
-    for _ in 0..count {
-        // name: エクスポートする名前
-        let (rest, name) = decode_name(input)?;
-
-        // export kind
-        let (rest, export_kind) = le_u8(rest)?;
-        let (rest, idx) = leb128_u32(rest)?;
-        let kind = match export_kind {
-            0x00 => ExportKind::Func(idx),
-            _ => unreachable!(),
-        };
-
-        exports.push(Export { name, kind });
-
-        input = rest;
-    }
-
-    Ok((&[], exports))
-}
-
 fn decode_limits(input: &[u8]) -> IResult<&[u8], Limits> {
     let (input, (limits, min)) = pair(leb128_u32, leb128_u32)(input)?;
     let max = if limits == 0 {
@@ -198,12 +161,6 @@ fn decode_limits(input: &[u8]) -> IResult<&[u8], Limits> {
     };
 
     Ok((&[], Limits { min, max }))
-}
-
-fn decode_custom_section(input: &[u8]) -> IResult<&[u8], Custom> {
-    let (input, name) = decode_name(input)?;
-    let data = input.to_vec();
-    Ok((&[], Custom { name, data }))
 }
 
 fn decode_type_section(input: &[u8]) -> IResult<&[u8], Vec<FuncType>> {
@@ -418,14 +375,6 @@ mod tests {
     #[test]
     fn decode_import() -> Result<()> {
         let wasm = wat::parse_str(include_str!("../fixtures/import.wat"))?;
-        let module = Module::new(&wasm)?;
-        insta::assert_debug_snapshot!(module);
-        Ok(())
-    }
-
-    #[test]
-    fn decode_export() -> Result<()> {
-        let wasm = wat::parse_str(include_str!("../fixtures/export.wat"))?;
         let module = Module::new(&wasm)?;
         insta::assert_debug_snapshot!(module);
         Ok(())
