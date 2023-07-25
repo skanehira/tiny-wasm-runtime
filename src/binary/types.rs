@@ -1,5 +1,11 @@
 use super::instruction::Instruction;
 
+#[derive(Default, Debug, PartialEq)]
+pub struct Custom {
+    pub name: String,
+    pub data: Vec<u8>,
+}
+
 #[derive(Debug, PartialEq)]
 pub struct Memory {
     pub limits: Limits,
@@ -48,6 +54,17 @@ pub struct Import {
 
 #[derive(Debug, PartialEq)]
 pub enum ImportKind {
+    Func(u32),
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Export {
+    pub name: String,
+    pub kind: ExportKind,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ExportKind {
     Func(u32),
 }
 
