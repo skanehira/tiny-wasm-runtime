@@ -3,7 +3,7 @@ use super::{
     opcode::Opcode,
     section::SectionID,
     types::{
-        Block, BlockType, Custom, Data, Export, ExportKind, Expr, ExprValue, FuncType, Function,
+        Block, BlockType, Data, Export, ExportKind, Expr, ExprValue, FuncType, Function,
         FunctionLocal, Import, ImportKind, Limits, Memory, MemoryArg, ValueType,
     },
 };
@@ -21,7 +21,6 @@ use num_traits::FromPrimitive as _;
 pub struct Module {
     pub magic: String,
     pub version: u32,
-    pub custom_section: Option<Custom>,
     pub memory_section: Option<Vec<Memory>>,
     pub type_section: Option<Vec<FuncType>>,
     pub function_section: Option<Vec<u32>>,
@@ -61,12 +60,6 @@ impl Module {
                     let (rest, section_bytes) = take(size)(input)?;
 
                     match id {
-                        SectionID::Custom => {
-                            // カスタムセクションの読み込み
-                            // 残りは存在しないため、タプルの1番目は捨てる
-                            let (_, custom) = decode_custom_section(section_bytes)?;
-                            module.custom_section = Some(custom);
-                        }
                         SectionID::Memory => {
                             let (_, memory) = decode_memory_section(section_bytes)?;
                             module.memory_section = Some(vec![memory]);
@@ -198,12 +191,6 @@ fn decode_limits(input: &[u8]) -> IResult<&[u8], Limits> {
     };
 
     Ok((&[], Limits { min, max }))
-}
-
-fn decode_custom_section(input: &[u8]) -> IResult<&[u8], Custom> {
-    let (input, name) = decode_name(input)?;
-    let data = input.to_vec();
-    Ok((&[], Custom { name, data }))
 }
 
 fn decode_type_section(input: &[u8]) -> IResult<&[u8], Vec<FuncType>> {

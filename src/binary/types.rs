@@ -1,11 +1,5 @@
 use super::instruction::Instruction;
 
-#[derive(Default, Debug, PartialEq)]
-pub struct Custom {
-    pub name: String,
-    pub data: Vec<u8>,
-}
-
 #[derive(Debug, PartialEq)]
 pub struct Memory {
     pub limits: Limits,

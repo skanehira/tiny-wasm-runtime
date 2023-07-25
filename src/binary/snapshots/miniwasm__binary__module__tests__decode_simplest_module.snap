@@ -5,7 +5,6 @@ expression: module
 Module {
     magic: "\0asm",
     version: 1,
-    custom_section: None,
     memory_section: None,
     type_section: None,
     function_section: None,
