@@ -1,10 +1,10 @@
 use super::{
-    instruction::{Instruction, MemoryArg},
+    instruction::Instruction,
     opcode::Opcode,
     section::SectionID,
     types::{
         Block, BlockType, Custom, Data, Export, ExportKind, Expr, ExprValue, FuncType, Function,
-        FunctionLocal, Import, ImportKind, Limits, Memory, ValueType,
+        FunctionLocal, Import, ImportKind, Limits, Memory, MemoryArg, ValueType,
     },
 };
 use nom::{
@@ -209,7 +209,7 @@ fn decode_custom_section(input: &[u8]) -> IResult<&[u8], Custom> {
 fn decode_type_section(input: &[u8]) -> IResult<&[u8], Vec<FuncType>> {
     let mut func_types: Vec<FuncType> = vec![];
 
-    // count: 関数の型定義の数
+    // countは関数の型定義の数
     let (mut input, count) = leb128_u32(input)?;
 
     for _ in 0..count {

@@ -1,10 +1,4 @@
-use super::types::Block;
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct MemoryArg {
-    pub align: u32,
-    pub offset: u32,
-}
+use super::types::{Block, MemoryArg};
 
 #[derive(Debug, Clone)]
 pub enum Instruction {

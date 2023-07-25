@@ -17,6 +17,12 @@ pub struct Limits {
     pub max: Option<u32>,
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct MemoryArg {
+    pub align: u32,
+    pub offset: u32,
+}
+
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct FuncType {
     pub params: Vec<ValueType>,
