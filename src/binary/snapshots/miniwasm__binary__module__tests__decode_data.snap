@@ -1,0 +1,42 @@
+---
+source: src/binary/module.rs
+expression: module
+---
+Module {
+    magic: "\0asm",
+    version: 1,
+    memory_section: Some(
+        [
+            Memory {
+                limits: Limits {
+                    min: 1,
+                    max: None,
+                },
+            },
+        ],
+    ),
+    type_section: None,
+    function_section: None,
+    import_section: None,
+    export_section: None,
+    data_section: Some(
+        [
+            Data {
+                memory_idx: 0,
+                offset: Value(
+                    I32(
+                        0,
+                    ),
+                ),
+                init: [
+                    104,
+                    101,
+                    108,
+                    108,
+                    111,
+                ],
+            },
+        ],
+    ),
+    code_section: None,
+}

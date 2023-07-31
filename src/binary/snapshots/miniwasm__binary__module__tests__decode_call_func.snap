@@ -1,0 +1,45 @@
+---
+source: src/binary/module.rs
+expression: module
+---
+Module {
+    magic: "\0asm",
+    version: 1,
+    memory_section: None,
+    type_section: Some(
+        [
+            FuncType {
+                params: [],
+                results: [],
+            },
+        ],
+    ),
+    function_section: Some(
+        [
+            0,
+            0,
+        ],
+    ),
+    import_section: None,
+    export_section: None,
+    data_section: None,
+    code_section: Some(
+        [
+            Function {
+                locals: [],
+                code: [
+                    End,
+                ],
+            },
+            Function {
+                locals: [],
+                code: [
+                    Call(
+                        0,
+                    ),
+                    End,
+                ],
+            },
+        ],
+    ),
+}
