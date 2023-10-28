@@ -1,6 +1,6 @@
 use super::types::{Block, MemoryArg};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Instruction {
     If(Block),
     End,

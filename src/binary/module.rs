@@ -17,7 +17,7 @@ use nom::{
 use nom_leb128::{leb128_i32, leb128_u32};
 use num_traits::FromPrimitive as _;
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, PartialEq, Eq)]
 pub struct Module {
     pub magic: String,
     pub version: u32,
@@ -374,7 +374,11 @@ mod tests {
     fn decode_simplest_module() -> Result<()> {
         let wasm = wat::parse_str("(module)")?;
         let module = Module::new(&wasm)?;
-        insta::assert_debug_snapshot!(module);
+        assert_eq!(module, Module{
+            magic: "\0asm".into(),
+            version: 1,
+            ..Default::default()
+        });
         Ok(())
     }
 
