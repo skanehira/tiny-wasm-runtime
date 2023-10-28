@@ -17,7 +17,7 @@ use nom::{
 use nom_leb128::{leb128_i32, leb128_u32};
 use num_traits::FromPrimitive as _;
 
-#[derive(Default, Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Module {
     pub magic: String,
     pub version: u32,
@@ -28,6 +28,22 @@ pub struct Module {
     pub export_section: Option<Vec<Export>>,
     pub data_section: Option<Vec<Data>>,
     pub code_section: Option<Vec<Function>>,
+}
+
+impl Default for Module {
+    fn default() -> Self {
+        Self {
+            magic: "\0asm".into(),
+            version: 1,
+            memory_section: None,
+            type_section: None,
+            function_section: None,
+            import_section: None,
+            export_section: None,
+            data_section: None,
+            code_section: None,
+        }
+    }
 }
 
 impl Module {
@@ -367,18 +383,21 @@ fn decode_instructions(input: &[u8]) -> IResult<&[u8], Instruction> {
 
 #[cfg(test)]
 mod tests {
-    use super::Module;
+    use crate::{
+        binary::types::{
+            Block, BlockType, Data, Export, ExportKind, FuncType, Function, FunctionLocal, Import,
+            ImportKind, Limits, Memory, MemoryArg, ValueType,
+        },
+        Instruction, Module,
+    };
     use anyhow::*;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn decode_simplest_module() -> Result<()> {
         let wasm = wat::parse_str("(module)")?;
         let module = Module::new(&wasm)?;
-        assert_eq!(module, Module{
-            magic: "\0asm".into(),
-            version: 1,
-            ..Default::default()
-        });
+        assert_eq!(module, Module::default());
         Ok(())
     }
 
@@ -386,7 +405,21 @@ mod tests {
     fn decode_simplest_func() -> Result<()> {
         let wasm = wat::parse_str("(module (func))")?;
         let module = Module::new(&wasm)?;
-        insta::assert_debug_snapshot!(module);
+        assert_eq!(
+            module,
+            Module {
+                type_section: Some(vec![FuncType {
+                    params: vec![],
+                    results: vec![],
+                }]),
+                function_section: Some(vec![0]),
+                code_section: Some(vec![Function {
+                    locals: vec![],
+                    code: vec![Instruction::End],
+                }]),
+                ..Default::default()
+            }
+        );
         Ok(())
     }
 
@@ -394,7 +427,15 @@ mod tests {
     fn decode_memory() -> Result<()> {
         let wasm = wat::parse_str("(module (memory 1))")?;
         let module = Module::new(&wasm)?;
-        insta::assert_debug_snapshot!(module);
+        assert_eq!(
+            module,
+            Module {
+                memory_section: Some(vec![Memory {
+                    limits: Limits { min: 1, max: None }
+                }]),
+                ..Default::default()
+            }
+        );
         Ok(())
     }
 
@@ -402,7 +443,20 @@ mod tests {
     fn decode_data() -> Result<()> {
         let wasm = wat::parse_str(include_str!("../fixtures/data.wat"))?;
         let module = Module::new(&wasm)?;
-        insta::assert_debug_snapshot!(module);
+        assert_eq!(
+            module,
+            Module {
+                memory_section: Some(vec![Memory {
+                    limits: Limits { min: 1, max: None }
+                }]),
+                data_section: Some(vec![Data {
+                    memory_idx: 0,
+                    init: vec![0x68, 0x65, 0x6c, 0x6c, 0x6f],
+                    offset: 0.into(),
+                }]),
+                ..Default::default()
+            }
+        );
         Ok(())
     }
 
@@ -410,7 +464,21 @@ mod tests {
     fn decode_import() -> Result<()> {
         let wasm = wat::parse_str(include_str!("../fixtures/import.wat"))?;
         let module = Module::new(&wasm)?;
-        insta::assert_debug_snapshot!(module);
+        assert_eq!(
+            module,
+            Module {
+                type_section: Some(vec![FuncType {
+                    params: vec![],
+                    results: vec![],
+                }]),
+                import_section: Some(vec![Import {
+                    module: "module".into(),
+                    field: "func".into(),
+                    kind: ImportKind::Func(0),
+                }]),
+                ..Default::default()
+            }
+        );
         Ok(())
     }
 
@@ -418,7 +486,25 @@ mod tests {
     fn decode_export() -> Result<()> {
         let wasm = wat::parse_str(include_str!("../fixtures/export.wat"))?;
         let module = Module::new(&wasm)?;
-        insta::assert_debug_snapshot!(module);
+        assert_eq!(
+            module,
+            Module {
+                type_section: Some(vec![FuncType {
+                    params: vec![],
+                    results: vec![],
+                }]),
+                function_section: Some(vec![0]),
+                export_section: Some(vec![Export {
+                    name: "dummy".into(),
+                    kind: ExportKind::Func(0),
+                }]),
+                code_section: Some(vec![Function {
+                    locals: vec![],
+                    code: vec![Instruction::End],
+                },]),
+                ..Default::default()
+            }
+        );
         Ok(())
     }
 
@@ -426,7 +512,25 @@ mod tests {
     fn decode_func_param_result() -> Result<()> {
         let wasm = wat::parse_str(include_str!("../fixtures/func_param_result.wat"))?;
         let module = Module::new(&wasm)?;
-        insta::assert_debug_snapshot!(module);
+        assert_eq!(
+            module,
+            Module {
+                type_section: Some(vec![FuncType {
+                    params: vec![ValueType::I32, ValueType::I32],
+                    results: vec![ValueType::I32, ValueType::I32],
+                }]),
+                function_section: Some(vec![0]),
+                code_section: Some(vec![Function {
+                    locals: vec![],
+                    code: vec![
+                        Instruction::LocalGet(0),
+                        Instruction::LocalGet(1),
+                        Instruction::End,
+                    ],
+                }]),
+                ..Default::default()
+            }
+        );
         Ok(())
     }
 
@@ -434,7 +538,30 @@ mod tests {
     fn decode_func_local() -> Result<()> {
         let wasm = wat::parse_str(include_str!("../fixtures/func_local.wat"))?;
         let module = Module::new(&wasm)?;
-        insta::assert_debug_snapshot!(module);
+        assert_eq!(
+            module,
+            Module {
+                type_section: Some(vec![FuncType {
+                    params: vec![],
+                    results: vec![],
+                }]),
+                function_section: Some(vec![0]),
+                code_section: Some(vec![Function {
+                    locals: vec![
+                        FunctionLocal {
+                            type_count: 1,
+                            value_type: ValueType::I32,
+                        },
+                        FunctionLocal {
+                            type_count: 2,
+                            value_type: ValueType::I64,
+                        },
+                    ],
+                    code: vec![Instruction::End,],
+                }]),
+                ..Default::default()
+            }
+        );
         Ok(())
     }
 
@@ -442,7 +569,27 @@ mod tests {
     fn decode_call_func() -> Result<()> {
         let wasm = wat::parse_str(include_str!("../fixtures/call.wat"))?;
         let module = Module::new(&wasm)?;
-        insta::assert_debug_snapshot!(module);
+        assert_eq!(
+            module,
+            Module {
+                type_section: Some(vec![FuncType {
+                    params: vec![],
+                    results: vec![],
+                }]),
+                function_section: Some(vec![0, 0]),
+                code_section: Some(vec![
+                    Function {
+                        locals: vec![],
+                        code: vec![Instruction::End,],
+                    },
+                    Function {
+                        locals: vec![],
+                        code: vec![Instruction::Call(0), Instruction::End,],
+                    },
+                ]),
+                ..Default::default()
+            }
+        );
         Ok(())
     }
 
@@ -450,7 +597,46 @@ mod tests {
     fn decode_fib() -> Result<()> {
         let wasm = wat::parse_str(include_str!("../fixtures/fib.wat"))?;
         let module = Module::new(&wasm)?;
-        insta::assert_debug_snapshot!(module);
+        assert_eq!(
+            module,
+            Module {
+                type_section: Some(vec![FuncType {
+                    params: vec![ValueType::I32],
+                    results: vec![ValueType::I32],
+                }]),
+                function_section: Some(vec![0]),
+                export_section: Some(vec![Export {
+                    name: "fib".into(),
+                    kind: ExportKind::Func(0),
+                }]),
+                code_section: Some(vec![Function {
+                    locals: vec![],
+                    code: vec![
+                        Instruction::LocalGet(0),
+                        Instruction::I32Const(2),
+                        Instruction::I32LtS,
+                        Instruction::If(Block {
+                            block_type: BlockType::Empty
+                        }),
+                        Instruction::I32Const(1),
+                        Instruction::Return,
+                        Instruction::End,
+                        Instruction::LocalGet(0),
+                        Instruction::I32Const(2),
+                        Instruction::I32Sub,
+                        Instruction::Call(0),
+                        Instruction::LocalGet(0),
+                        Instruction::I32Const(1),
+                        Instruction::I32Sub,
+                        Instruction::Call(0),
+                        Instruction::I32Add,
+                        Instruction::Return,
+                        Instruction::End,
+                    ],
+                }]),
+                ..Default::default()
+            }
+        );
 
         Ok(())
     }
@@ -459,7 +645,78 @@ mod tests {
     fn decode_hello_world() -> Result<()> {
         let wasm = wat::parse_str(include_str!("../fixtures/hello_world.wat"))?;
         let module = Module::new(&wasm)?;
-        insta::assert_debug_snapshot!(module);
+        assert_eq!(
+            module,
+            Module {
+                memory_section: Some(vec![Memory {
+                    limits: Limits { min: 1, max: None }
+                }]),
+                type_section: Some(vec![
+                    FuncType {
+                        params: vec![
+                            ValueType::I32,
+                            ValueType::I32,
+                            ValueType::I32,
+                            ValueType::I32
+                        ],
+                        results: vec![ValueType::I32],
+                    },
+                    FuncType {
+                        params: vec![],
+                        results: vec![ValueType::I32],
+                    }
+                ]),
+                function_section: Some(vec![1]),
+                import_section: Some(vec![Import {
+                    module: "wasi_snapshot_preview1".into(),
+                    field: "fd_write".into(),
+                    kind: ImportKind::Func(0),
+                }]),
+                export_section: Some(vec![Export {
+                    name: "_start".into(),
+                    kind: ExportKind::Func(1),
+                }]),
+                data_section: Some(vec![Data {
+                    memory_idx: 0,
+                    offset: 0.into(),
+                    init: vec![
+                        0x48, 0x65, 0x6c, 0x6c, 0x6f, // "Hello"
+                        0x2c, 0x20, // ", "
+                        0x57, 0x6f, 0x72, 0x6c, 0x64, // "World"
+                        0x21, 0x0a // "!\n"
+                    ],
+                }]),
+                code_section: Some(vec![Function {
+                    locals: vec![FunctionLocal {
+                        type_count: 1,
+                        value_type: ValueType::I32,
+                    }],
+                    code: vec![
+                        Instruction::I32Const(16),
+                        Instruction::I32Const(0),
+                        Instruction::I32Store(MemoryArg {
+                            align: 2,
+                            offset: 0,
+                        }),
+                        Instruction::I32Const(20),
+                        Instruction::I32Const(14),
+                        Instruction::I32Store(MemoryArg {
+                            align: 2,
+                            offset: 0,
+                        }),
+                        Instruction::I32Const(16),
+                        Instruction::LocalSet(0),
+                        Instruction::I32Const(1),
+                        Instruction::LocalGet(0),
+                        Instruction::I32Const(1),
+                        Instruction::I32Const(24),
+                        Instruction::Call(0),
+                        Instruction::End,
+                    ],
+                }]),
+                ..Default::default()
+            }
+        );
         Ok(())
     }
 }

@@ -74,6 +74,12 @@ pub enum Expr {
     Value(ExprValue),
 }
 
+impl From<i32> for Expr {
+    fn from(value: i32) -> Self {
+        Self::Value(ExprValue::I32(value))
+    }
+}
+
 impl From<&Expr> for usize {
     fn from(val: &Expr) -> Self {
         match val {
