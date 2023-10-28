@@ -1,8 +1,11 @@
 use super::{
     instruction::Instruction,
     opcode::Opcode,
-    section::{Data, Export, Function, Import, Memory, SectionID},
-    types::{Block, BlockType, FuncType, MemoryArg, Limits, ExportKind, Expr, ExprValue, ImportKind, ValueType, FunctionLocal},
+    section::{Data, Export, Function, Import, Memory, SectionCode},
+    types::{
+        Block, BlockType, ExportKind, Expr, ExprValue, FuncType, FunctionLocal, ImportKind, Limits,
+        MemoryArg, ValueType,
+    },
 };
 use nom::{
     bytes::complete::{tag, take},
@@ -66,39 +69,39 @@ impl Module {
         while !remaining.is_empty() {
             match decode_section_header(remaining) {
                 // input: セクションヘッダーを覗いた残りのバイト列
-                // (id, size): セクションのIDとサイズ
-                Ok((input, (id, size))) => {
+                // (code, size): セクションコードとサイズ
+                Ok((input, (code, size))) => {
                     // セクションのサイズだけバイト列を切り出す
                     // rest は残りのバイト列
-                    let (rest, section_bytes) = take(size)(input)?;
+                    let (rest, section_contents) = take(size)(input)?;
 
-                    match id {
-                        SectionID::Memory => {
-                            let (_, memory) = decode_memory_section(section_bytes)?;
+                    match code {
+                        SectionCode::Memory => {
+                            let (_, memory) = decode_memory_section(section_contents)?;
                             module.memory_section = Some(vec![memory]);
                         }
-                        SectionID::Type => {
-                            let (_, func_types) = decode_type_section(section_bytes)?;
+                        SectionCode::Type => {
+                            let (_, func_types) = decode_type_section(section_contents)?;
                             module.type_section = Some(func_types);
                         }
-                        SectionID::Function => {
-                            let (_, func_idx_list) = decode_function_section(section_bytes)?;
+                        SectionCode::Function => {
+                            let (_, func_idx_list) = decode_function_section(section_contents)?;
                             module.function_section = Some(func_idx_list);
                         }
-                        SectionID::Import => {
-                            let (_, imports) = decode_import_section(section_bytes)?;
+                        SectionCode::Import => {
+                            let (_, imports) = decode_import_section(section_contents)?;
                             module.import_section = Some(imports);
                         }
-                        SectionID::Export => {
-                            let (_, exports) = decode_export_section(section_bytes)?;
+                        SectionCode::Export => {
+                            let (_, exports) = decode_export_section(section_contents)?;
                             module.export_section = Some(exports);
                         }
-                        SectionID::Data => {
-                            let (_, data) = decode_data_section(section_bytes)?;
+                        SectionCode::Data => {
+                            let (_, data) = decode_data_section(section_contents)?;
                             module.data_section = Some(data);
                         }
-                        SectionID::Code => {
-                            let (_, funcs) = decode_code_section(section_bytes)?;
+                        SectionCode::Code => {
+                            let (_, funcs) = decode_code_section(section_contents)?;
                             module.code_section = Some(funcs);
                         }
                         _ => {}
@@ -114,11 +117,14 @@ impl Module {
     }
 }
 
-fn decode_section_header(input: &[u8]) -> IResult<&[u8], (SectionID, u32)> {
-    let (input, (id, size)) = pair(le_u8, leb128_u32)(input)?;
+fn decode_section_header(input: &[u8]) -> IResult<&[u8], (SectionCode, u32)> {
+    let (input, (code, size)) = pair(le_u8, leb128_u32)(input)?;
     Ok((
         input,
-        (SectionID::from_u8(id).expect("unexpected section id"), size),
+        (
+            SectionCode::from_u8(code).expect("unexpected section code"),
+            size,
+        ),
     ))
 }
 
