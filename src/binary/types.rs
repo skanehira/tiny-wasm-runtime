@@ -1,20 +1,43 @@
-use super::instruction::Instruction;
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct Memory {
-    pub limits: Limits,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct Limits {
-    pub min: u32,
-    pub max: Option<u32>,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MemoryArg {
     pub align: u32,
     pub offset: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Block {
+    pub block_type: BlockType,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BlockType {
+    Empty,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum Expr {
+    Value(ExprValue),
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum ExprValue {
+    I32(i32),
+}
+
+impl From<i32> for Expr {
+    fn from(value: i32) -> Self {
+        Self::Value(ExprValue::I32(value))
+    }
+}
+
+impl From<&Expr> for usize {
+    fn from(val: &Expr) -> Self {
+        match val {
+            Expr::Value(value) => match value {
+                ExprValue::I32(i) => *i as usize,
+            },
+        }
+    }
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -39,22 +62,11 @@ impl From<u8> for ValueType {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct Import {
-    pub module: String,
-    pub field: String,
-    pub kind: ImportKind,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum ImportKind {
-    Func(u32),
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct Export {
-    pub name: String,
-    pub kind: ExportKind,
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(dead_code)]
+pub struct FunctionLocal {
+    pub type_count: u32,
+    pub value_type: ValueType,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -63,57 +75,12 @@ pub enum ExportKind {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct Data {
-    pub memory_idx: u32,
-    pub offset: Expr,
-    pub init: Vec<u8>,
+pub enum ImportKind {
+    Func(u32),
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum Expr {
-    Value(ExprValue),
-}
-
-impl From<i32> for Expr {
-    fn from(value: i32) -> Self {
-        Self::Value(ExprValue::I32(value))
-    }
-}
-
-impl From<&Expr> for usize {
-    fn from(val: &Expr) -> Self {
-        match val {
-            Expr::Value(value) => match value {
-                ExprValue::I32(i) => *i as usize,
-            },
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum ExprValue {
-    I32(i32),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[allow(dead_code)]
-pub struct FunctionLocal {
-    pub type_count: u32,
-    pub value_type: ValueType,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Eq)]
-pub struct Function {
-    pub locals: Vec<FunctionLocal>,
-    pub code: Vec<Instruction>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Block {
-    pub block_type: BlockType,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BlockType {
-    Empty,
+#[derive(Debug, PartialEq, Eq)]
+pub struct Limits {
+    pub min: u32,
+    pub max: Option<u32>,
 }

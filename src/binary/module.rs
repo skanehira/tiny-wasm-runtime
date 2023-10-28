@@ -1,11 +1,8 @@
 use super::{
     instruction::Instruction,
     opcode::Opcode,
-    section::SectionID,
-    types::{
-        Block, BlockType, Data, Export, ExportKind, Expr, ExprValue, FuncType, Function,
-        FunctionLocal, Import, ImportKind, Limits, Memory, MemoryArg, ValueType,
-    },
+    section::{Data, Export, Function, Import, Memory, SectionID},
+    types::{Block, BlockType, FuncType, MemoryArg, Limits, ExportKind, Expr, ExprValue, ImportKind, ValueType, FunctionLocal},
 };
 use nom::{
     bytes::complete::{tag, take},
@@ -384,9 +381,12 @@ fn decode_instructions(input: &[u8]) -> IResult<&[u8], Instruction> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        binary::types::{
-            Block, BlockType, Data, Export, ExportKind, FuncType, Function, FunctionLocal, Import,
-            ImportKind, Limits, Memory, MemoryArg, ValueType,
+        binary::{
+            section::{Data, Export, Function, Import, Memory},
+            types::{
+                Block, BlockType, ExportKind, FuncType, FunctionLocal, ImportKind, Limits,
+                MemoryArg, ValueType,
+            },
         },
         Instruction, Module,
     };
