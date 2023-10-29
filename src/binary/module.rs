@@ -414,10 +414,7 @@ mod tests {
         assert_eq!(
             module,
             Module {
-                type_section: Some(vec![FuncType {
-                    params: vec![],
-                    results: vec![],
-                }]),
+                type_section: Some(vec![FuncType::default()]),
                 function_section: Some(vec![0]),
                 code_section: Some(vec![Function {
                     locals: vec![],

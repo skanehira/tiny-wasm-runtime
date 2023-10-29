@@ -63,7 +63,6 @@ impl From<u8> for ValueType {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[allow(dead_code)]
 pub struct FunctionLocal {
     pub type_count: u32,
     pub value_type: ValueType,
