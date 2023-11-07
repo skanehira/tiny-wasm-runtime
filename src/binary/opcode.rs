@@ -1,7 +1,6 @@
 use num_derive::FromPrimitive;
 
 #[derive(Debug, FromPrimitive, PartialEq)]
-#[repr(u8)]
 pub enum Opcode {
     If = 0x04,
     End = 0x0B,

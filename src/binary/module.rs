@@ -212,35 +212,34 @@ fn decode_limits(input: &[u8]) -> IResult<&[u8], Limits> {
     Ok((&[], Limits { min, max }))
 }
 
+fn decode_vaue_type(input: &[u8]) -> IResult<&[u8], ValueType> {
+    let (input, value_type) = le_u8(input)?;
+    Ok((input, value_type.into()))
+}
+
 fn decode_type_section(input: &[u8]) -> IResult<&[u8], Vec<FuncType>> {
     let mut func_types: Vec<FuncType> = vec![];
 
-    // countは関数の型定義の数
     let (mut input, count) = leb128_u32(input)?;
 
     for _ in 0..count {
-        // NOTE: 本来なら0x60であることをチェックする必要があるが、簡易実装のためスキップ
         let (rest, _) = le_u8(input)?;
         let mut func = FuncType::default();
 
-        // rest: 残りのバイト列
-        // size: 引数の数
         let (rest, size) = leb128_u32(rest)?;
-        // 引数の数だけバイト列を切り出す
-        // types: 引数の型のバイト列
         let (rest, types) = take(size)(rest)?;
-        // 引数の型のバイト列を1バイトずつ読み込む
-        let (_, types) = many0(le_u8)(types)?;
-        func.params = types.into_iter().map(Into::into).collect();
+        let (_, types) = many0(decode_vaue_type)(types)?;
+        func.params = types;
 
         let (rest, size) = leb128_u32(rest)?;
         let (rest, types) = take(size)(rest)?;
-        let (_, types) = many0(le_u8)(types)?;
-        func.results = types.into_iter().map(Into::into).collect();
+        let (_, types) = many0(decode_vaue_type)(types)?;
+        func.results = types;
 
         func_types.push(func);
         input = rest;
     }
+
     Ok((&[], func_types))
 }
 
@@ -316,10 +315,9 @@ fn decode_function_body(input: &[u8]) -> IResult<&[u8], Function> {
     for _ in 0..count {
         let (rest, type_count) = leb128_u32(input)?;
         let (rest, value_type) = le_u8(rest)?;
-        let value_type: ValueType = value_type.into();
         body.locals.push(FunctionLocal {
             type_count,
-            value_type,
+            value_type: value_type.into(),
         });
         input = rest;
     }
@@ -415,6 +413,28 @@ mod tests {
             module,
             Module {
                 type_section: Some(vec![FuncType::default()]),
+                function_section: Some(vec![0]),
+                code_section: Some(vec![Function {
+                    locals: vec![],
+                    code: vec![Instruction::End],
+                }]),
+                ..Default::default()
+            }
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn decode_func_param() -> Result<()> {
+        let wasm = wat::parse_str("(module (func (param i32 i64)))")?;
+        let module = Module::new(&wasm)?;
+        assert_eq!(
+            module,
+            Module {
+                type_section: Some(vec![FuncType {
+                    params: vec![ValueType::I32, ValueType::I64],
+                    results: vec![],
+                }]),
                 function_section: Some(vec![0]),
                 code_section: Some(vec![Function {
                     locals: vec![],
@@ -560,7 +580,7 @@ mod tests {
                             value_type: ValueType::I64,
                         },
                     ],
-                    code: vec![Instruction::End,],
+                    code: vec![Instruction::End],
                 }]),
                 ..Default::default()
             }
@@ -583,11 +603,11 @@ mod tests {
                 code_section: Some(vec![
                     Function {
                         locals: vec![],
-                        code: vec![Instruction::End,],
+                        code: vec![Instruction::End],
                     },
                     Function {
                         locals: vec![],
-                        code: vec![Instruction::Call(0), Instruction::End,],
+                        code: vec![Instruction::Call(0), Instruction::End],
                     },
                 ]),
                 ..Default::default()
