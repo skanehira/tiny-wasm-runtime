@@ -1,45 +1,3 @@
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MemoryArg {
-    pub align: u32,
-    pub offset: u32,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Block {
-    pub block_type: BlockType,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BlockType {
-    Empty,
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum Expr {
-    Value(ExprValue),
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum ExprValue {
-    I32(i32),
-}
-
-impl From<i32> for Expr {
-    fn from(value: i32) -> Self {
-        Self::Value(ExprValue::I32(value))
-    }
-}
-
-impl From<&Expr> for usize {
-    fn from(val: &Expr) -> Self {
-        match val {
-            Expr::Value(value) => match value {
-                ExprValue::I32(i) => *i as usize,
-            },
-        }
-    }
-}
-
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct FuncType {
     pub params: Vec<ValueType>,
@@ -69,17 +27,12 @@ pub struct FunctionLocal {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ExportKind {
+pub enum ExportDesc {
     Func(u32),
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum ImportKind {
-    Func(u32),
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct Limits {
-    pub min: u32,
-    pub max: Option<u32>,
+pub struct Export {
+    pub name: String,
+    pub desc: ExportDesc,
 }

@@ -29,8 +29,6 @@ jobs:
     name: Run test
     steps:
       - uses: actions/checkout@v3
-        with:
-          submodules: recursive
       - uses: ./.github/actions/setup
       - name: Run test
         run: cargo test --all -- --nocapture
