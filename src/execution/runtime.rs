@@ -124,7 +124,7 @@ impl Runtime {
                     let Some(value) = frame.locals.get(*idx as usize) else {
                         bail!("not found local");
                     };
-                    self.stack.push(value.clone());
+                    self.stack.push(*value);
                 }
                 Instruction::I32Add => {
                     let (Some(right), Some(left)) = (self.stack.pop(), self.stack.pop()) else {
