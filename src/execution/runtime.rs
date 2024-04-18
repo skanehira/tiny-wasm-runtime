@@ -1,5 +1,6 @@
 use super::{
-    store::{FuncInst, InternalFuncInst, Store},
+    import::Import,
+    store::{ExternalFuncInst, FuncInst, InternalFuncInst, Store},
     value::Value,
 };
 use crate::binary::{
@@ -23,6 +24,7 @@ pub struct Runtime {
     pub store: Store,
     pub stack: Vec<Value>,
     pub call_stack: Vec<Frame>,
+    pub import: Import,
 }
 
 impl Runtime {
@@ -33,6 +35,17 @@ impl Runtime {
             store,
             ..Default::default()
         })
+    }
+
+    pub fn add_import(
+        &mut self,
+        module_name: impl Into<String>,
+        func_name: impl Into<String>,
+        func: impl FnMut(&mut Store, Vec<Value>) -> Result<Option<Value>> + 'static,
+    ) -> Result<()> {
+        let import = self.import.entry(module_name.into()).or_default();
+        import.insert(func_name.into(), Box::new(func));
+        Ok(())
     }
 
     pub fn call(&mut self, name: impl Into<String>, args: Vec<Value>) -> Result<Option<Value>> {
@@ -54,6 +67,7 @@ impl Runtime {
         }
         match func_inst {
             FuncInst::Internal(func) => self.invoke_internal(func.clone()),
+            FuncInst::External(func) => self.invoke_external(func.clone()),
         }
     }
 
@@ -100,6 +114,20 @@ impl Runtime {
         Ok(None)
     }
 
+    fn invoke_external(&mut self, func: ExternalFuncInst) -> Result<Option<Value>> {
+        let args = self
+            .stack
+            .split_off(self.stack.len() - func.func_type.params.len());
+        let module = self
+            .import
+            .get_mut(&func.module)
+            .ok_or(anyhow!("not found module"))?;
+        let import_func = module
+            .get_mut(&func.func)
+            .ok_or(anyhow!("not found function"))?;
+        import_func(&mut self.store, args)
+    }
+
     fn execute(&mut self) -> Result<()> {
         loop {
             let Some(frame) = self.call_stack.last_mut() else {
@@ -137,8 +165,14 @@ impl Runtime {
                     let Some(func) = self.store.funcs.get(*idx as usize) else {
                         bail!("not found func");
                     };
-                    match func {
-                        FuncInst::Internal(func) => self.push_frame(&func.clone()),
+                    let func_inst = func.clone();
+                    match func_inst {
+                        FuncInst::Internal(func) => self.push_frame(&func),
+                        FuncInst::External(func) => {
+                            if let Some(value) = self.invoke_external(func)? {
+                                self.stack.push(value);
+                            }
+                        }
                     }
                 }
             }
@@ -205,6 +239,34 @@ mod tests {
             let result = runtime.call("call_doubler", args)?;
             assert_eq!(result, Some(Value::I32(want)));
         }
+        Ok(())
+    }
+
+    #[test]
+    fn call_imported_func() -> Result<()> {
+        let wasm = wat::parse_file("src/fixtures/import.wat")?;
+        let mut runtime = Runtime::instantiate(wasm)?;
+        runtime.add_import("env", "add", |_, args| {
+            let arg = args[0];
+            Ok(Some(arg + arg))
+        })?;
+        let tests = vec![(2, 4), (10, 20), (1, 2)];
+
+        for (arg, want) in tests {
+            let args = vec![Value::I32(arg)];
+            let result = runtime.call("call_add", args)?;
+            assert_eq!(result, Some(Value::I32(want)));
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn not_found_imported_func() -> Result<()> {
+        let wasm = wat::parse_file("src/fixtures/import.wat")?;
+        let mut runtime = Runtime::instantiate(wasm)?;
+        runtime.add_import("env", "fooooo", |_, _| Ok(None))?;
+        let result = runtime.call("call_add", vec![Value::I32(1)]);
+        assert!(result.is_err());
         Ok(())
     }
 }
