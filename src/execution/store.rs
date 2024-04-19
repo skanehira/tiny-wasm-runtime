@@ -7,6 +7,8 @@ use crate::binary::{
 };
 use anyhow::{bail, Result};
 
+pub const PAGE_SIZE: u32 = 65536; // 64Ki
+
 #[derive(Clone)]
 pub struct Func {
     pub locals: Vec<ValueType>,
@@ -42,10 +44,17 @@ pub struct ModuleInst {
     pub exports: HashMap<String, ExportInst>,
 }
 
+#[derive(Default, Debug, Clone)]
+pub struct MemoryInst {
+    pub data: Vec<u8>,
+    pub max: Option<u32>,
+}
+
 #[derive(Default)]
 pub struct Store {
     pub funcs: Vec<FuncInst>,
     pub module: ModuleInst,
+    pub memories: Vec<MemoryInst>,
 }
 
 impl Store {
@@ -56,6 +65,7 @@ impl Store {
         };
 
         let mut funcs = vec![];
+        let mut memories = vec![];
 
         if let Some(ref import_section) = module.import_section {
             for import in import_section {
@@ -125,8 +135,20 @@ impl Store {
         };
         let module_inst = ModuleInst { exports };
 
+        if let Some(ref sections) = module.memory_section {
+            for memory in sections {
+                let min = memory.limits.min * PAGE_SIZE;
+                let memory = MemoryInst {
+                    data: vec![0; min as usize],
+                    max: memory.limits.max,
+                };
+                memories.push(memory);
+            }
+        }
+
         Ok(Self {
             funcs,
+            memories,
             module: module_inst,
         })
     }

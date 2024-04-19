@@ -48,3 +48,14 @@ pub struct Import {
     pub field: String,
     pub desc: ImportDesc,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Limits {
+    pub min: u32,
+    pub max: Option<u32>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Memory {
+    pub limits: Limits,
+}
