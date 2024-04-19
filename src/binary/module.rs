@@ -14,7 +14,7 @@ use nom::{
     sequence::pair,
     IResult,
 };
-use nom_leb128::leb128_u32;
+use nom_leb128::{leb128_i32, leb128_u32};
 use num_traits::FromPrimitive as _;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -220,6 +220,10 @@ fn decode_instructions(input: &[u8]) -> IResult<&[u8], Instruction> {
         Opcode::LocalSet => {
             let (rest, idx) = leb128_u32(input)?;
             (rest, Instruction::LocalSet(idx))
+        }
+        Opcode::I32Const => {
+            let (rest, value) = leb128_i32(input)?;
+            (rest, Instruction::I32Const(value))
         }
         Opcode::I32Add => (input, Instruction::I32Add),
         Opcode::End => (input, Instruction::End),
