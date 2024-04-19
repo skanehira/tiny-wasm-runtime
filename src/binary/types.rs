@@ -59,3 +59,10 @@ pub struct Limits {
 pub struct Memory {
     pub limits: Limits,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Data {
+    pub memory_index: u32,
+    pub offset: u32,
+    pub init: Vec<u8>,
+}
