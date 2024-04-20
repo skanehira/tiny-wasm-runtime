@@ -6,16 +6,16 @@
   (data (i32.const 0) "Hello, World!\n")
 
   (func $hello_world (result i32)
-    (local $iovec i32)
+    (local $iovs i32)
 
     (i32.store (i32.const 16) (i32.const 0))
     (i32.store (i32.const 20) (i32.const 14))
 
-    (local.set $iovec (i32.const 16))
+    (local.set $iovs (i32.const 16))
 
     (call $fd_write
       (i32.const 1)
-      (local.get $iovec)
+      (local.get $iovs)
       (i32.const 1)
       (i32.const 24)
     )
