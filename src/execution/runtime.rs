@@ -4,6 +4,7 @@ use super::{
     import::Import,
     store::{ExternalFuncInst, FuncInst, InternalFuncInst, Store},
     value::Value,
+    wasi::WasiSnapshotPreview1,
 };
 use crate::binary::{
     instruction::Instruction,
@@ -27,6 +28,7 @@ pub struct Runtime {
     pub stack: Vec<Value>,
     pub call_stack: Vec<Frame>,
     pub import: Import,
+    pub wasi: Option<WasiSnapshotPreview1>,
 }
 
 impl Runtime {
@@ -35,6 +37,19 @@ impl Runtime {
         let store = Store::new(module)?;
         Ok(Self {
             store,
+            ..Default::default()
+        })
+    }
+
+    pub fn instantiate_with_wasi(
+        wasm: impl AsRef<[u8]>,
+        wasi: WasiSnapshotPreview1,
+    ) -> Result<Self> {
+        let module = Module::new(wasm.as_ref())?;
+        let store = Store::new(module)?;
+        Ok(Self {
+            store,
+            wasi: Some(wasi),
             ..Default::default()
         })
     }
@@ -120,6 +135,13 @@ impl Runtime {
         let args = self
             .stack
             .split_off(self.stack.len() - func.func_type.params.len());
+
+        if func.module == "wasi_snapshot_preview1" {
+            if let Some(wasi) = &mut self.wasi {
+                return wasi.invoke(&mut self.store, &func.func, args);
+            }
+        }
+
         let module = self
             .import
             .get_mut(&func.module)
