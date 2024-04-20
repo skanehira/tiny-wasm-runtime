@@ -248,7 +248,7 @@ mod tests {
     #[test]
     fn not_found_export_function() -> Result<()> {
         let wasm = wat::parse_file("src/fixtures/func_add.wat")?;
-        let mut runtime = Runtime::instantiate(wasm).unwrap();
+        let mut runtime = Runtime::instantiate(wasm)?;
         let result = runtime.call("fooooo", vec![]);
         assert!(result.is_err());
         Ok(())
