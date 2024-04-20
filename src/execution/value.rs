@@ -10,6 +10,15 @@ impl From<i32> for Value {
     }
 }
 
+impl From<Value> for i32 {
+    fn from(value: Value) -> Self {
+        match value {
+            Value::I32(value) => value,
+            _ => panic!("type mismatch"),
+        }
+    }
+}
+
 impl From<i64> for Value {
     fn from(value: i64) -> Self {
         Value::I64(value)

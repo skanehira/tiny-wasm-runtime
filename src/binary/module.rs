@@ -221,6 +221,11 @@ fn decode_instructions(input: &[u8]) -> IResult<&[u8], Instruction> {
             let (rest, idx) = leb128_u32(input)?;
             (rest, Instruction::LocalSet(idx))
         }
+        Opcode::I32Store => {
+            let (rest, align) = leb128_u32(input)?;
+            let (rest, offset) = leb128_u32(rest)?;
+            (rest, Instruction::I32Store { align, offset })
+        }
         Opcode::I32Const => {
             let (rest, value) = leb128_i32(input)?;
             (rest, Instruction::I32Const(value))
@@ -597,6 +602,37 @@ mod tests {
                 }
             );
         }
+        Ok(())
+    }
+
+    #[test]
+    fn decode_i32_store() -> Result<()> {
+        let wasm = wat::parse_str(
+            "(module (func (i32.store offset=4 (i32.const 4))))",
+        )?;
+        let module = Module::new(&wasm)?;
+        assert_eq!(
+            module,
+            Module {
+                type_section: Some(vec![FuncType {
+                    params: vec![],
+                    results: vec![],
+                }]),
+                function_section: Some(vec![0]),
+                code_section: Some(vec![Function {
+                    locals: vec![],
+                    code: vec![
+                        Instruction::I32Const(4),
+                        Instruction::I32Store {
+                            align: 2,
+                            offset: 4
+                        },
+                        Instruction::End
+                    ],
+                }]),
+                ..Default::default()
+            }
+        );
         Ok(())
     }
 }
