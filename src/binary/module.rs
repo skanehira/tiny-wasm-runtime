@@ -607,9 +607,7 @@ mod tests {
 
     #[test]
     fn decode_i32_store() -> Result<()> {
-        let wasm = wat::parse_str(
-            "(module (func (i32.store offset=4 (i32.const 4))))",
-        )?;
+        let wasm = wat::parse_str("(module (func (i32.store offset=4 (i32.const 4))))")?;
         let module = Module::new(&wasm)?;
         assert_eq!(
             module,
