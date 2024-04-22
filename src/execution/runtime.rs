@@ -223,6 +223,7 @@ impl Runtime {
                         }
                     }
                 }
+                _ => todo!(),
             }
         }
         Ok(())

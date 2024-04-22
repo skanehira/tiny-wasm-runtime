@@ -35,3 +35,14 @@ impl std::ops::Add for Value {
         }
     }
 }
+
+impl std::ops::Sub for Value {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Value::I32(left), Value::I32(right)) => Value::I32(left - right),
+            (Value::I64(left), Value::I64(right)) => Value::I64(left - right),
+            _ => panic!("type mismatch"),
+        }
+    }
+}
