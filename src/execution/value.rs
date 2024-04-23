@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Value {
     I32(i32),
@@ -16,6 +18,12 @@ impl From<Value> for i32 {
             Value::I32(value) => value,
             _ => panic!("type mismatch"),
         }
+    }
+}
+
+impl From<bool> for Value {
+    fn from(value: bool) -> Self {
+        Value::I32(if value { 1 } else { 0 })
     }
 }
 
@@ -45,4 +53,27 @@ impl std::ops::Sub for Value {
             _ => panic!("type mismatch"),
         }
     }
+}
+
+impl PartialOrd for Value {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (self, other) {
+            (Value::I32(a), Value::I32(b)) => a.partial_cmp(b),
+            (Value::I64(a), Value::I64(b)) => a.partial_cmp(b),
+            _ => panic!("type mismatch"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum LabelKind {
+    If,
+}
+
+#[derive(Debug, Clone)]
+pub struct Label {
+    pub kind: LabelKind,
+    pub pc: usize,
+    pub sp: usize,
+    pub arity: usize,
 }
