@@ -124,7 +124,7 @@ fn decode_section_header(input: &[u8]) -> IResult<&[u8], (SectionCode, u32)> {
     ))
 }
 
-fn decode_vaue_type(input: &[u8]) -> IResult<&[u8], ValueType> {
+fn decode_value_type(input: &[u8]) -> IResult<&[u8], ValueType> {
     let (input, value_type) = le_u8(input)?;
     Ok((input, value_type.into()))
 }
@@ -140,12 +140,12 @@ fn decode_type_section(input: &[u8]) -> IResult<&[u8], Vec<FuncType>> {
 
         let (rest, size) = leb128_u32(rest)?;
         let (rest, types) = take(size)(rest)?;
-        let (_, types) = many0(decode_vaue_type)(types)?;
+        let (_, types) = many0(decode_value_type)(types)?;
         func.params = types;
 
         let (rest, size) = leb128_u32(rest)?;
         let (rest, types) = take(size)(rest)?;
-        let (_, types) = many0(decode_vaue_type)(types)?;
+        let (_, types) = many0(decode_value_type)(types)?;
         func.results = types;
 
         func_types.push(func);
