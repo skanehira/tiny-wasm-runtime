@@ -37,8 +37,8 @@ impl std::ops::Add for Value {
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (Value::I32(left), Value::I32(right)) => Value::I32(left + right),
-            (Value::I64(left), Value::I64(right)) => Value::I64(left + right),
+            (Value::I32(left), Value::I32(right)) => Value::I32(left.wrapping_add(right)),
+            (Value::I64(left), Value::I64(right)) => Value::I64(left.wrapping_add(right)),
             _ => panic!("type mismatch"),
         }
     }
