@@ -188,7 +188,7 @@ impl Runtime {
                     };
                     frame.labels.push(label);
                 }
-                Instruction::Return => match frame.labels.pop() {
+                Instruction::End => match frame.labels.pop() {
                     Some(label) => {
                         let Label { pc, sp, arity, .. } = label;
                         frame.pc = pc as isize;
@@ -203,7 +203,7 @@ impl Runtime {
                         stack_unwind(&mut self.stack, sp, arity)?;
                     }
                 },
-                Instruction::End => {
+                Instruction::Return => {
                     let Some(frame) = self.call_stack.pop() else {
                         bail!("not found frame");
                     };
