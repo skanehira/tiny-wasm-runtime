@@ -176,13 +176,14 @@ impl Runtime {
                         .pop()
                         .ok_or(anyhow!("not found value in the stack"))?;
 
+                    let next_pc = get_end_address(&frame.insts, frame.pc as usize)?;
                     if cond == Value::I32(0) {
-                        frame.pc = get_end_address(&frame.insts, frame.pc as usize)? as isize;
+                        frame.pc = next_pc as isize
                     }
 
                     let label = Label {
                         kind: LabelKind::If,
-                        pc: frame.pc as usize,
+                        pc: next_pc,
                         sp: self.stack.len(),
                         arity: block.block_type.result_count(),
                     };
