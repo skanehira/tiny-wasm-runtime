@@ -1,7 +1,7 @@
-use anyhow::Result;
-use std::{fs::File, io::prelude::*, os::fd::FromRawFd};
-
 use super::{store::Store, value::Value};
+use anyhow::Result;
+use rand::Rng;
+use std::{fs::File, io::prelude::*, os::fd::FromRawFd};
 
 #[derive(Default)]
 pub struct WasiSnapshotPreview1 {
@@ -65,6 +65,25 @@ impl WasiSnapshotPreview1 {
         }
 
         memory_write(&mut memory.data, rp, &nwritten.to_le_bytes())?;
+
+        Ok(Some(0.into()))
+    }
+
+    pub fn random_get(&mut self, store: &mut Store, args: Vec<Value>) -> Result<Option<Value>> {
+        let args: Vec<i32> = args.into_iter().map(Into::into).collect();
+
+        let buf_ptr = args[0] as usize;
+        let buf_len = args[1] as usize;
+
+        let memory = store
+            .memories
+            .get_mut(0)
+            .ok_or(anyhow::anyhow!("not found memory"))?;
+
+        let mut rng = rand::rng();
+        for i in 0..buf_len {
+            memory.data[buf_ptr + i] = rng.random();
+        }
 
         Ok(Some(0.into()))
     }
